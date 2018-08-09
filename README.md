@@ -1,4 +1,3 @@
-# BookReviewWebApplication
+# Project 1
 
-Book Review Web Application 
-Project 1 of CS50 
+Web Programming with Python and JavaScript

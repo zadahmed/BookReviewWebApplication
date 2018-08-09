@@ -1,0 +1,24 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+ <hr>
+  <table class="table table-striped">
+    <tr>
+      <th>ID</th>
+      <th>Title</th>
+      <th>Author</th>
+      <th>ISBN</th>
+      <th>Year</th>
+    </tr>
+    {% for result in results %}
+      <tr>
+        <td>{{result.id}}</td>
+        <td><a href="results/{{result.id}}">{{result.title}}</a></td>
+        <td>{{result.author}}</td>
+        <td>{{result.isbn}}</td>
+        <td>{{result.year}}</td>
+      </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}
