@@ -1,6 +1,6 @@
 import os
 import json as JSON
-
+import types
 from flask import Flask, session , request ,render_template , flash , redirect , url_for , session , logging
 from flask_session import Session
 from sqlalchemy import create_engine
@@ -56,15 +56,6 @@ class SearchForm(Form):
     select = SelectField('Search for Books:', choices=choices)
 
     search = StringField('')
-
-
-
-
-
-
-@app.route('/book/<string:id>/')
-def book(id):
-	return render_template('book.html' , id = id)
 
 
 class RegisterForm(Form):
@@ -132,19 +123,42 @@ def is_logged_in(f):
     return wrap
 
 	
+class BookForm(Form):
+	title = StringField('Title', [validators.Length(min=1, max=200)])
+	body = TextAreaField('Body', [validators.Length(min=30)])
+
 
 @app.route('/results/<string:id>/')
 def result(id):
 	cur = mysql.connection.cursor()
 	result = cur.execute("SELECT * FROM books WHERE id = %s",[id]) 
 	book = cur.fetchone()   
-	return render_template('book_page.html' ,  book = book) 
+	reviews = cur.execute("SELECT * FROM bookreview WHERE book_id = %s" , [id])
+	reviewsall = cur.fetchall()
+	cur.close()
+	return render_template('book_page.html' ,  book = book , reviewsall = reviewsall)   
+
     
+@app.route('/results/<string:id>/addreview/', methods =['GET','POST'])
+def add_review(id):
+	form = BookForm(request.form)
+	if request.method == 'POST' and form.validate():
+		cur = mysql.connection.cursor()
+		title = form.title.data   
+		body = form.body.data 
+		title = str(title)
+		body = body.replace('<p>'," ")      
+		body = body.replace('</p>'," ")
+		body = body.replace('<br>'," ")
+		body = str(body)
+		books_id = id
+		cur.execute("INSERT INTO bookreview(title ,body , book_id) VALUES (%s, %s, %s)", (title, body, books_id))
+		mysql.connection.commit()      
+		flash('Review Created', 'success')
+		return redirect(url_for('dashboard'))
+	return render_template('add_review.html' ,id=id , form=form)
 
 
-    
-    
-	
 
 
 @app.route('/results')
@@ -214,3 +228,8 @@ def register():
 if __name__ == '__main__':
 	app.secret_key = 'afrahdawood12'
 	app.run(debug=True)
+
+
+
+
+	#INSERT INTO bookreview(book_id , title , body)  VALUES(5024 , 'Yes this is the first review', 'nothing obvious just casual things about the frist review what do you want to say');
