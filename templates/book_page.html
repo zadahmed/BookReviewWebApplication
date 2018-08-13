@@ -1,6 +1,19 @@
 {% extends 'layout.html' %}
-
+<head>
+  
+</head>
+<script type="text/javascript">
+            function myCallback(result) {
+              alert('nb of reviews for book: ' + result.reviews.length);
+            }
+            var scriptTag = document.createElement('script');
+            query = "https://www.goodreads.com/book/isbn/"+{{book.isbn}}+"?callback=myCallback&format=json&user_id=84590769";
+            scriptTag.src = query;
+            document.getElementsByTagName('head')[0].appendChild(scriptTag);
+            document.body.innerHTML = "<h1>"+myCallback(1289120)"</h1>"
+            </script>
 {% block body %}
+<h1>myCallback(239023)</h1>
 <h1>{{book.title}}</h1>
 <h2>By :{{book.author}}</h2>
 <h2>Year :{{book.year}}</h2>

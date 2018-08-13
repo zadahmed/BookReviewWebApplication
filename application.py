@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from Data import Books
 from flask_mysqldb import MySQL 
-from wtforms import Form ,StringField,TextAreaField,PasswordField,validators , SelectField 
+from wtforms import Form ,StringField,TextAreaField,PasswordField,validators , SelectField , IntegerField
 from passlib.hash import sha256_crypt
 from functools import wraps
 
@@ -126,10 +126,12 @@ def is_logged_in(f):
 class BookForm(Form):
 	title = StringField('Title', [validators.Length(min=1, max=200)])
 	body = TextAreaField('Body', [validators.Length(min=30)])
+	rating = IntegerField('Rate 1 - 5' ,[validators.NumberRange(min=1 , max=5)])
 
 
 @app.route('/results/<string:id>/')
 def result(id):
+	client = goodreads.Client(client_id="uIcQQiAbnQPgbupzd4YpNQ", client_secret="qGtVwOrD8Dqm5aCPpS8um1SwBlAIMe4D2sizAvaiV8") # Secret is optional
 	cur = mysql.connection.cursor()
 	result = cur.execute("SELECT * FROM books WHERE id = %s",[id]) 
 	book = cur.fetchone()   
@@ -144,18 +146,26 @@ def add_review(id):
 	form = BookForm(request.form)
 	if request.method == 'POST' and form.validate():
 		cur = mysql.connection.cursor()
-		title = form.title.data   
-		body = form.body.data 
-		title = str(title)
-		body = body.replace('<p>'," ")      
-		body = body.replace('</p>'," ")
-		body = body.replace('<br>'," ")
-		body = str(body)
-		books_id = id
-		cur.execute("INSERT INTO bookreview(title ,body , book_id) VALUES (%s, %s, %s)", (title, body, books_id))
-		mysql.connection.commit()      
-		flash('Review Created', 'success')
-		return redirect(url_for('dashboard'))
+		result = cur.execute("SELECT * FROM bookreview WHERE reviewCount = 1 AND book_id = %s;" , [id])
+		if result > 0:
+			flash('Review Already Exists', 'danger')
+			return redirect(url_for('dashboard'))
+		else:
+			title = form.title.data   
+			body = form.body.data 
+			rating = form.rating.data
+			title = str(title)
+			body = body.replace('<p>'," ")      
+			body = body.replace('</p>'," ")
+			body = body.replace('<br>'," ")
+			body = str(body)
+			books_id = id
+			reviewCount = 1
+			cur.execute("INSERT INTO bookreview(title ,body , book_id , rating ,reviewCount ) VALUES (%s, %s, %s , %s , %s)", (title, body, books_id, rating , reviewCount))
+			mysql.connection.commit()      
+			flash('Review Created', 'success')
+			flash(results)
+			return redirect(url_for('dashboard'))
 	return render_template('add_review.html' ,id=id , form=form)
 
 
@@ -167,10 +177,6 @@ def search_results(search):
     search_string = search.data['search']
     select_string = search.data['select']
     cur = mysql.connection.cursor()
-    #query = ("SELECT * FROM books WHERE select_string=%s = search_string=%s")
-    #cur.execute("SELECT * FROM books WHERE select_string=%s = search_string=%s" , select_string,search_string)
-
-
     sqlSyntax = 'SELECT * FROM books WHERE {} = %s'.format(select_string)
     cur.execute(sqlSyntax, (search_string,))
     results = cur.fetchall()
@@ -180,14 +186,7 @@ def search_results(search):
         flash('No results found!')
         return redirect('/')
     else:
-        # display results
-
         return render_template('results.html', results=results)
-        #flash(str(select_string))
-        #flash('results found!')
-        #flash(str(results))
-        #return redirect('/')
-    	
 
 
 
